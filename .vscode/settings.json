@@ -1,0 +1,5 @@
+// settings for python and using black formatter on save
+{
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true
+}
