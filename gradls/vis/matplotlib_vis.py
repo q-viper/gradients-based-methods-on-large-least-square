@@ -11,7 +11,7 @@ from matplotlib.animation import FuncAnimation
 class MatplotlibVizConfig:
     # config for scientific visualization with matplotlib and save as svg
     figsize: Tuple[int, int] = (10, 10)
-    dpi: int = 300
+    dpi: int = 100
     background_color: str = "white"
     font_size: int = 20
     font_family: str = "Arial"
@@ -46,17 +46,18 @@ class Plot:
     plot_order: PlotOn
     plot_row_col: Tuple[int, int] = (-1, -1)
     title: str = ""
-    title_size: int = 5
+    title_size: int = 7
     xlabel: str = ""
     ylabel: str = ""
-    label_size: int = 5
+    label_size: int = 10
     color: str = "blue"
     marker: Optional[str] = None
-    linestyle: str = "--"
+    linestyle: str = "-"
     linewidth: int = 2
     legend: str = ""
     show_legend: bool = True
-    legend_size: int = 5
+    legend_size: int = 7
+    apply_margin: bool = False
     top_margin: float = 0.9
     bottom_margin: float = 0.1
     left_margin: float = 0.1
@@ -65,6 +66,7 @@ class Plot:
     xmin: Optional[float] = None
     ymax: Optional[float] = None
     ymin: Optional[float] = None
+    allow_animation: bool = True
 
 
 class MatplotlibVisualizer:
@@ -139,11 +141,6 @@ class MatplotlibVisualizer:
             if plot.ymin is None:
                 plot.ymin = np.nanmin(plot.y)
 
-        # plot.xmax = plot.xmax if not np.isnan(plot.xmax) else 0
-        # plot.xmin = plot.xmin if not np.isnan(plot.xmin) else 0
-        # plot.ymax = plot.ymax if not np.isnan(plot.ymax) else 0
-        # plot.ymin = plot.ymin if not np.isnan(plot.ymin) else 0
-
         self._plots.append(plot)
 
     def _generate_plot(self, plot: Plot, ax, legend_loc: dict = {}, limit: int = -1):
@@ -165,7 +162,6 @@ class MatplotlibVisualizer:
                 color=plot.color,
                 marker=plot.marker,
                 linewidth=plot.linewidth,
-                s=plot.linewidth,
             )
         elif plot.plot_type == PlotType.BAR:
             ax.bar(plot.X[:limit], plot.y[:limit], color=plot.color)
@@ -177,30 +173,40 @@ class MatplotlibVisualizer:
             raise ValueError("Invalid plot type.")
 
         # add left margin
+        # print(ax.get_xlim(), ax.get_ylim())
         x_min, x_max = plot.xmin, plot.xmax  # ax.get_xlim()
         y_min, y_max = plot.ymin, plot.ymax  # ax.get_ylim()
 
         if self.ax_lim.get(key) is None:
             self.ax_lim[key] = []
         else:
-            print(f"Existing limits: {self.ax_lim[key]}, keys: {key}")
+            # print(f"Existing limits: {self.ax_lim[key]}, keys: {key}")
             x_min = (
-                min(x_min, self.ax_lim[key][0]) if not self.ax_lim[key][0] else x_min
+                min(x_min, self.ax_lim[key][0])
+                if (self.ax_lim[key][0] is not None and x_max is not None)
+                else ax.get_xlim()[0]
             )
             x_max = (
-                max(x_max, self.ax_lim[key][1]) if not self.ax_lim[key][1] else x_max
+                max(x_max, self.ax_lim[key][1])
+                if (self.ax_lim[key][1] is not None and x_max is not None)
+                else ax.get_xlim()[1]
             )
             y_min = (
-                min(y_min, self.ax_lim[key][2]) if not self.ax_lim[key][2] else y_min
+                min(y_min, self.ax_lim[key][2])
+                if (self.ax_lim[key][2] is not None and y_min is not None)
+                else ax.get_ylim()[0]
             )
             y_max = (
-                max(y_max, self.ax_lim[key][3]) if not self.ax_lim[key][3] else y_max
+                max(y_max, self.ax_lim[key][3])
+                if (self.ax_lim[key][3] is not None and y_max is not None)
+                else ax.get_ylim()[1]
             )
         self.ax_lim[key] = [x_min, x_max, y_min, y_max]
 
-        ax.set_xlim([x_min - plot.left_margin, x_max + plot.right_margin])
-        if plot.y is not None:
-            ax.set_ylim([y_min - plot.bottom_margin, y_max + plot.top_margin])
+        if plot.apply_margin:
+            ax.set_xlim([x_min - plot.left_margin, x_max + plot.right_margin])
+            if plot.y is not None:
+                ax.set_ylim([y_min - plot.bottom_margin, y_max + plot.top_margin])
 
         ax.set_title(
             plot.title,
@@ -229,7 +235,7 @@ class MatplotlibVisualizer:
                 legend_loc[key].append(plot.legend)
         return ax, legend_loc
 
-    def generate_plots(self):
+    def generate_plots(self, save_path: Optional[Path] = None, format: str = "svg"):
         # get figure and axes
         fig, ax = self.make_figure()
 
@@ -237,11 +243,11 @@ class MatplotlibVisualizer:
 
         for plot in self._plots:
             curr_row, curr_col = plot.plot_row_col
-            # print(f"Generating plot at row {curr_row} and column {curr_col}")
-            # return ax, curr_row, curr_col
             curr_ax = ax[curr_row, curr_col]
 
-            curr_ax, legend_loc = self._generate_plot(plot, curr_ax, legend_loc)
+            curr_ax, legend_loc = self._generate_plot(
+                plot, curr_ax, legend_loc, limit=plot.X.shape[0]
+            )
 
         for rc, loc in legend_loc.items():
             curr_row, curr_col = [int(i) for i in rc.split("_")]
@@ -258,6 +264,9 @@ class MatplotlibVisualizer:
                     if (i, j) not in plot_row_col:
                         ax[i, j].axis("off")
 
+        if save_path is not None:
+            self.save_fig(fig, save_path, format=format)
+
         return fig, ax
 
     def _animate(self, i, ax, num_frames=30):
@@ -266,7 +275,11 @@ class MatplotlibVisualizer:
         for plot in self._plots:
             curr_row, curr_col = plot.plot_row_col
             curr_ax = ax[curr_row, curr_col]
-            limit = int(i * len(plot.X) / num_frames)
+
+            if plot.allow_animation:
+                limit = int(i * len(plot.X) / num_frames)
+            else:
+                limit = len(plot.X)
 
             curr_ax, legend_loc = self._generate_plot(
                 plot, curr_ax, legend_loc, limit=limit
@@ -289,7 +302,9 @@ class MatplotlibVisualizer:
 
         return ax
 
-    def animate_plots(self, interval: int = 10, frames: int = 10):
+    def animate_plots(
+        self, interval: int = 10, frames: int = 10, save_path: Optional[Path] = None
+    ):
         fig, ax = self.make_figure()
         anim = FuncAnimation(
             fig,
@@ -301,6 +316,8 @@ class MatplotlibVisualizer:
             ),
             interval=interval,
         )
+        if save_path is not None:
+            self.save_animation(anim, save_path)
         return anim
 
     def save_animation(self, anim, path: Path):
@@ -316,81 +333,48 @@ class MatplotlibVisualizer:
         plt.close(fig)
 
     def clear_plots(self):
+        self._plots = []
+        self.num_plots = 0
+        self.curr_row = 0
+        self.curr_col = 0
+        self.num_rows = 1
+        self.num_cols = 1
         plt.clf()
 
 
-if __name__ == "__main__":
-    viz_config = MatplotlibVizConfig(
-        figsize=(5, 3),
-        title="Test",
-        use_tex=False,
-    )
-    viz = MatplotlibVisualizer(config=viz_config)
+# Example usage
+# viz_config = MatplotlibVizConfig(figsize=(5,3),title="Test",
+#                                  use_tex=False,)
+# viz = MatplotlibVisualizer(config=viz_config)
 
-    X = np.linspace(0, 10, 100)
-    y = np.sin(X)
-    z = np.cos(X)
-    w = y + z
+# X = np.linspace(0, 10, 100)
+# y = np.sin(X)
+# z = np.cos(X)
+# w = y+z
 
-    # show legend in latex format
+# # show legend in latex format
 
-    plot1 = Plot(
-        X=X, y=y, plot_type=PlotType.LINE, plot_order=PlotOn.RIGHT, legend="sin(x)"
-    )
-    plot2 = Plot(X=X, y=y, plot_type=PlotType.SCATTER, plot_order=PlotOn.APPEND_RIGHT)
-    plot3 = Plot(X=X, y=y, plot_type=PlotType.BAR, plot_order=PlotOn.APPEND_DOWN)
-    plot4 = Plot(
-        X=X,
-        y=z,
-        plot_type=PlotType.LINE,
-        plot_order=PlotOn.APPEND_RIGHT,
-        legend="cos(x)",
-        color="green",
-    )
-    plot5 = Plot(
-        X=np.array([1] * 100),
-        y=w,
-        plot_type=PlotType.SCATTER,
-        plot_order=PlotOn.RIGHT,
-        legend="sin(x)+cos(x)",
-        color="red",
-    )
-    plot5 = Plot(
-        X=np.array([10] * 100),
-        y=w,
-        plot_type=PlotType.SCATTER,
-        plot_order=PlotOn.RIGHT,
-        legend="",
-        color="red",
-    )
+# plot1 = Plot(X=X, y=y, plot_type=PlotType.LINE, plot_order=PlotOn.RIGHT, legend="sin(x)")
+# plot2 = Plot(X=X, y=y, plot_type=PlotType.SCATTER, plot_order=PlotOn.APPEND_RIGHT)
+# plot3 = Plot(X=X, y=y, plot_type=PlotType.BAR, plot_order=PlotOn.APPEND_DOWN)
+# plot4 = Plot(X=X, y=z, plot_type=PlotType.LINE, plot_order=PlotOn.APPEND_RIGHT, legend="cos(x)", color="green", allow_animation=False)
+# plot5 = Plot(X=np.array([1]*100), y=w, plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, legend="sin(x)+cos(x)", color="red")
+# plot5 = Plot(X=np.array([10]*100), y=w, plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, legend="", color="red", allow_animation=False)
 
-    plot6 = Plot(
-        X=np.random.randint(0, 10, 100),
-        y=None,
-        plot_type=PlotType.HIST,
-        plot_order=PlotOn.APPEND_DOWN,
-    )
-    plot7 = Plot(
-        X=np.random.randint(0, 255, (10, 10, 3)),
-        y=None,
-        plot_type=PlotType.IMAGE,
-        plot_order=PlotOn.APPEND_RIGHT,
-        title="Image",
-    )
+# plot6 = Plot(X=np.random.randint(0, 10, 100), y=None, plot_type=PlotType.HIST, plot_order=PlotOn.APPEND_DOWN)
+# plot7 = Plot(X=np.random.randint(0, 255,(10,10, 3)), y=None, plot_type=PlotType.IMAGE, plot_order=PlotOn.APPEND_RIGHT, title="Image")
 
-    viz.append_plot(plot1)
-    viz.append_plot(plot2)
-    viz.append_plot(plot3)
-    viz.append_plot(plot4)
-    viz.append_plot(plot5)
-    viz.append_plot(plot6)
-    viz.append_plot(plot7)
 
-    fig, ax = viz.generate_plots()
-    # viz.save_fig(fig, Path("expt_res/test.png"), "png")
-    viz.show_fig()
-    viz.close_fig(fig)
+# viz.append_plot(plot1)
+# viz.append_plot(plot2)
+# viz.append_plot(plot3)
+# viz.append_plot(plot4)
+# viz.append_plot(plot5)
+# viz.append_plot(plot6)
+# viz.append_plot(plot7)
 
-    viz.animate_plots(interval=100, frames=30).save(
-        "expt_res/test.gif", writer="imagemagick", fps=30
-    )
+
+# fig, ax = viz.generate_plots()
+# viz.save_fig(fig, Path("expt_res/test.png"), 'png')
+# viz.show_fig()
+# viz.animate_plots(interval=100,frames=10).save('expt_res/test.gif', writer='imagemagick', fps=30)

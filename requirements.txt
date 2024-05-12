@@ -1,0 +1,3 @@
+streamsync==0.0.5
+numpy
+matplotlib

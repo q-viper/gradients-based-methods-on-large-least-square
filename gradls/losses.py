@@ -6,11 +6,13 @@ class LossType(Enum):
     MSE = "mean_squared_error"
     MAE = "mean_absolute_error"
     HINGE = "hinge"
+    RMSE = "root_mean_squared_error"
 
 
 class Loss:
     def __init__(self, loss_type: LossType):
         self.loss_type = loss_type
+        self.name = loss_type.value
 
     def __call__(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         if self.loss_type == LossType.MSE:
@@ -19,6 +21,8 @@ class Loss:
             return self.mean_absolute_error(y_true, y_pred)
         elif self.loss_type == LossType.HINGE:
             return self.hinge(y_true, y_pred)
+        elif self.loss_type == LossType.RMSE:
+            return self.mean_squared_error(y_true, y_pred) ** 0.5
         else:
             raise ValueError(f"Loss type {self.loss_type} not supported")
 
