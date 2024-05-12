@@ -42,43 +42,752 @@
         "uovays8odoj5zoj4": {
             "id": "uovays8odoj5zoj4",
             "type": "columns",
-            "parentId": "bebc5fe9-63a7-46a7-b0fa-62303555cfaf",
             "content": {},
-            "handlers": {},
+            "isCodeManaged": false,
             "position": 0,
+            "parentId": "bebc5fe9-63a7-46a7-b0fa-62303555cfaf",
+            "handlers": {},
             "visible": true
         },
-        "hcy8tkmpu8ssdmip": {
-            "id": "hcy8tkmpu8ssdmip",
-            "type": "column",
-            "parentId": "uovays8odoj5zoj4",
-            "content": {
-                "width": "1"
-            },
-            "handlers": {},
-            "position": 0,
-            "visible": true
-        },
-        "85b7yi3cttj1ua6w": {
-            "id": "85b7yi3cttj1ua6w",
-            "type": "column",
-            "parentId": "uovays8odoj5zoj4",
-            "content": {
-                "width": "1"
-            },
-            "handlers": {},
+        "m509mmhtscj9ltgg": {
+            "id": "m509mmhtscj9ltgg",
+            "type": "tabs",
+            "content": {},
+            "isCodeManaged": false,
             "position": 1,
+            "parentId": "c0f99a9e-5004-4e75-a6c6-36f17490b134",
+            "handlers": {},
             "visible": true
         },
-        "tyo96cuzb8mm0egh": {
-            "id": "tyo96cuzb8mm0egh",
+        "42b3azknhihd5q8f": {
+            "id": "42b3azknhihd5q8f",
+            "type": "tab",
+            "content": {
+                "name": "Make Experiments"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "m509mmhtscj9ltgg",
+            "handlers": {},
+            "visible": true
+        },
+        "sz79m1m54rch0dad": {
+            "id": "sz79m1m54rch0dad",
+            "type": "tab",
+            "content": {
+                "name": "View Experiments"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "m509mmhtscj9ltgg",
+            "handlers": {},
+            "visible": true
+        },
+        "nehpwv1t85jyuoa2": {
+            "id": "nehpwv1t85jyuoa2",
+            "type": "columns",
+            "content": {},
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "8jlsuuujs0thiwr1",
+            "handlers": {},
+            "visible": true
+        },
+        "ucfjtznhb4hcxqr0": {
+            "id": "ucfjtznhb4hcxqr0",
             "type": "column",
-            "parentId": "uovays8odoj5zoj4",
+            "content": {
+                "title": "",
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "nehpwv1t85jyuoa2",
+            "handlers": {},
+            "visible": true
+        },
+        "g2334tkap2ilhkxo": {
+            "id": "g2334tkap2ilhkxo",
+            "type": "column",
             "content": {
                 "width": "1"
             },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "nehpwv1t85jyuoa2",
             "handlers": {},
+            "visible": true
+        },
+        "fr27n6s0wn1ynwid": {
+            "id": "fr27n6s0wn1ynwid",
+            "type": "textinput",
+            "content": {
+                "label": "Name",
+                "placeholder": "Unique Name"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "ucfjtznhb4hcxqr0",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-change",
+                "stateRef": "new_expt_name"
+            }
+        },
+        "cxtee9gztquifsso": {
+            "id": "cxtee9gztquifsso",
+            "type": "radioinput",
+            "content": {
+                "label": "Replace Old",
+                "options": "{\n  \"true\": \"true\",\n  \"false\": \"false\"\n}",
+                "orientation": "horizontal"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "g2334tkap2ilhkxo",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "is_replace_old_expt"
+            }
+        },
+        "8zbg689giof2y1ly": {
+            "id": "8zbg689giof2y1ly",
+            "type": "columns",
+            "content": {},
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "syzm5osa72vg3mca",
+            "handlers": {},
+            "visible": true
+        },
+        "qklyzmqhcc26zste": {
+            "id": "qklyzmqhcc26zste",
+            "type": "column",
+            "content": {
+                "title": "",
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "8zbg689giof2y1ly",
+            "handlers": {},
+            "visible": true
+        },
+        "43818zpauyke67gf": {
+            "id": "43818zpauyke67gf",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "8zbg689giof2y1ly",
+            "handlers": {},
+            "visible": true
+        },
+        "len71el7drcmi5ii": {
+            "id": "len71el7drcmi5ii",
+            "type": "sliderinput",
+            "content": {
+                "label": "Num Rows",
+                "minValue": "0",
+                "maxValue": "10000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "qklyzmqhcc26zste",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "expt_num_rows"
+            }
+        },
+        "xgdm8w4fruzop30f": {
+            "id": "xgdm8w4fruzop30f",
+            "type": "sliderinput",
+            "content": {
+                "label": "Num Cols",
+                "minValue": "0",
+                "maxValue": "1000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "43818zpauyke67gf",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "expt_num_cols"
+            }
+        },
+        "btgicq732r2eh57t": {
+            "id": "btgicq732r2eh57t",
+            "type": "sliderinput",
+            "content": {
+                "label": "Min X",
+                "minValue": "0",
+                "maxValue": "1000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "qklyzmqhcc26zste",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "min_x"
+            }
+        },
+        "7p237xpz2m7oe11k": {
+            "id": "7p237xpz2m7oe11k",
+            "type": "sliderinput",
+            "content": {
+                "label": "Max X",
+                "minValue": "1",
+                "maxValue": "10000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "43818zpauyke67gf",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "max_x"
+            }
+        },
+        "25zd2gwh9biqt3a8": {
+            "id": "25zd2gwh9biqt3a8",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
             "position": 2,
+            "parentId": "8zbg689giof2y1ly",
+            "handlers": {},
+            "visible": true
+        },
+        "0jn4c1pae5jpm44p": {
+            "id": "0jn4c1pae5jpm44p",
+            "type": "sliderinput",
+            "content": {
+                "label": "Seed",
+                "minValue": "0",
+                "maxValue": "1000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "25zd2gwh9biqt3a8",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "expt_random_seed"
+            }
+        },
+        "3csp76lvarpv7y6k": {
+            "id": "3csp76lvarpv7y6k",
+            "type": "radioinput",
+            "content": {
+                "label": "Normalize",
+                "options": "{\n  \"true\": \"true\",\n  \"false\": \"false\"\n}",
+                "orientation": "horizontal"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "25zd2gwh9biqt3a8",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "expt_data_normalize"
+            }
+        },
+        "8jlsuuujs0thiwr1": {
+            "id": "8jlsuuujs0thiwr1",
+            "type": "section",
+            "content": {
+                "title": "Experiment Setup"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "42b3azknhihd5q8f",
+            "handlers": {},
+            "visible": true
+        },
+        "syzm5osa72vg3mca": {
+            "id": "syzm5osa72vg3mca",
+            "type": "section",
+            "content": {
+                "title": "Data Preparation"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "42b3azknhihd5q8f",
+            "handlers": {},
+            "visible": true
+        },
+        "a10njvnqxiz7oknx": {
+            "id": "a10njvnqxiz7oknx",
+            "type": "section",
+            "content": {
+                "title": "Training Config"
+            },
+            "isCodeManaged": false,
+            "position": 2,
+            "parentId": "42b3azknhihd5q8f",
+            "handlers": {},
+            "visible": true
+        },
+        "xkz90j1xdk4xzgnn": {
+            "id": "xkz90j1xdk4xzgnn",
+            "type": "columns",
+            "content": {},
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "a10njvnqxiz7oknx",
+            "handlers": {},
+            "visible": true
+        },
+        "1is6pfluh4ld9or4": {
+            "id": "1is6pfluh4ld9or4",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "xkz90j1xdk4xzgnn",
+            "handlers": {},
+            "visible": true
+        },
+        "1at4hgpmz5pldyvg": {
+            "id": "1at4hgpmz5pldyvg",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "xkz90j1xdk4xzgnn",
+            "handlers": {},
+            "visible": true
+        },
+        "udghe4johejqctlb": {
+            "id": "udghe4johejqctlb",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 2,
+            "parentId": "xkz90j1xdk4xzgnn",
+            "handlers": {},
+            "visible": true
+        },
+        "37wbs858d2dgw5rg": {
+            "id": "37wbs858d2dgw5rg",
+            "type": "column",
+            "content": {
+                "title": "",
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 3,
+            "parentId": "xkz90j1xdk4xzgnn",
+            "handlers": {},
+            "visible": true
+        },
+        "hqosqqexks1jf6yi": {
+            "id": "hqosqqexks1jf6yi",
+            "type": "sliderinput",
+            "content": {
+                "label": "Num Epochs",
+                "minValue": "1",
+                "maxValue": "1000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "1is6pfluh4ld9or4",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "num_epochs"
+            }
+        },
+        "zxj7uby8u8e8fymu": {
+            "id": "zxj7uby8u8e8fymu",
+            "type": "sliderinput",
+            "content": {
+                "label": "Learning Rate",
+                "minValue": "0",
+                "maxValue": "1",
+                "stepSize": "0.000001"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "37wbs858d2dgw5rg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "learning_rate"
+            }
+        },
+        "1q2bea3g60qu2wbz": {
+            "id": "1q2bea3g60qu2wbz",
+            "type": "sliderinput",
+            "content": {
+                "label": "Momentum",
+                "minValue": "0",
+                "maxValue": "1",
+                "stepSize": "0.000001"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "37wbs858d2dgw5rg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "momentum"
+            }
+        },
+        "t4qsvjzkcisf2k3m": {
+            "id": "t4qsvjzkcisf2k3m",
+            "type": "sliderinput",
+            "content": {
+                "label": "Batch Size",
+                "minValue": "1",
+                "maxValue": "1000",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "1at4hgpmz5pldyvg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "batch_size"
+            }
+        },
+        "gjo07sk4msnav4eu": {
+            "id": "gjo07sk4msnav4eu",
+            "type": "sliderinput",
+            "content": {
+                "label": "Test Size",
+                "minValue": "0",
+                "maxValue": "1",
+                "stepSize": "0.01"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "udghe4johejqctlb",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "train_valid_split"
+            }
+        },
+        "aus7jlle8e5zo6ru": {
+            "id": "aus7jlle8e5zo6ru",
+            "type": "selectinput",
+            "content": {
+                "label": "Loss",
+                "options": "@{loss_options}"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "1is6pfluh4ld9or4",
+            "handlers": {
+                "ss-option-change": "change_metrics_options"
+            },
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "loss"
+            }
+        },
+        "xeszxmzp42e13m99": {
+            "id": "xeszxmzp42e13m99",
+            "type": "multiselectinput",
+            "content": {
+                "label": "Metrics",
+                "options": "@{metrics_options}"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "1at4hgpmz5pldyvg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-options-change",
+                "stateRef": "metrics"
+            }
+        },
+        "2g9fdf7lmg9799en": {
+            "id": "2g9fdf7lmg9799en",
+            "type": "selectinput",
+            "content": {
+                "label": "Optimizer",
+                "options": "@{optimizer_options}"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "udghe4johejqctlb",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "optimizer"
+            }
+        },
+        "i7dam2fbeo47b0vl": {
+            "id": "i7dam2fbeo47b0vl",
+            "type": "radioinput",
+            "content": {
+                "label": "Log Anim",
+                "options": "{\n  \"true\": \"true\",\n  \"false\": \"false\"\n}",
+                "orientation": "horizontal"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "d51sg3mbbuexfscg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "log_anim"
+            }
+        },
+        "c1rs1zavpoz9t8tx": {
+            "id": "c1rs1zavpoz9t8tx",
+            "type": "section",
+            "content": {
+                "title": "Simulation"
+            },
+            "isCodeManaged": false,
+            "position": 3,
+            "parentId": "42b3azknhihd5q8f",
+            "handlers": {},
+            "visible": true
+        },
+        "979r9kgep66fh42x": {
+            "id": "979r9kgep66fh42x",
+            "type": "columns",
+            "content": {},
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "c1rs1zavpoz9t8tx",
+            "handlers": {},
+            "visible": true
+        },
+        "d51sg3mbbuexfscg": {
+            "id": "d51sg3mbbuexfscg",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "979r9kgep66fh42x",
+            "handlers": {},
+            "visible": true
+        },
+        "m840ik7hggep2j4v": {
+            "id": "m840ik7hggep2j4v",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "979r9kgep66fh42x",
+            "handlers": {},
+            "visible": true
+        },
+        "hn2qyb1byxpon781": {
+            "id": "hn2qyb1byxpon781",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 2,
+            "parentId": "979r9kgep66fh42x",
+            "handlers": {},
+            "visible": true
+        },
+        "vulkp27m2t3m616w": {
+            "id": "vulkp27m2t3m616w",
+            "type": "column",
+            "content": {
+                "width": "1"
+            },
+            "isCodeManaged": false,
+            "position": 3,
+            "parentId": "979r9kgep66fh42x",
+            "handlers": {},
+            "visible": true
+        },
+        "wluuoc7gk0q6s0qg": {
+            "id": "wluuoc7gk0q6s0qg",
+            "type": "sliderinput",
+            "content": {
+                "label": "Anim Interval",
+                "minValue": "1",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "m840ik7hggep2j4v",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "anim_interval"
+            }
+        },
+        "vucibu8xvhb706z7": {
+            "id": "vucibu8xvhb706z7",
+            "type": "sliderinput",
+            "content": {
+                "label": "FPS",
+                "minValue": "1",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "hn2qyb1byxpon781",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "anim_fps"
+            }
+        },
+        "ssg7ywi8uqbzlo2i": {
+            "id": "ssg7ywi8uqbzlo2i",
+            "type": "sliderinput",
+            "content": {
+                "label": "Num Frames",
+                "minValue": "2",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 0,
+            "parentId": "vulkp27m2t3m616w",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "anim_frames"
+            }
+        },
+        "ppjcj586trt6wt1m": {
+            "id": "ppjcj586trt6wt1m",
+            "type": "sliderinput",
+            "content": {
+                "label": "Log Every",
+                "minValue": "1",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "d51sg3mbbuexfscg",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "log_every"
+            }
+        },
+        "822ltj5otpad5qd3": {
+            "id": "822ltj5otpad5qd3",
+            "type": "radioinput",
+            "content": {
+                "label": "Log Real Param",
+                "options": "{\n  \"true\": \"true\",\n  \"false\": \"false\"\n}",
+                "orientation": "horizontal"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "m840ik7hggep2j4v",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-option-change",
+                "stateRef": "log_real_params"
+            }
+        },
+        "2er51oa3zqpr10lr": {
+            "id": "2er51oa3zqpr10lr",
+            "type": "sliderinput",
+            "content": {
+                "label": "Fig Nrows",
+                "minValue": "5",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "hn2qyb1byxpon781",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "fig_nrows"
+            }
+        },
+        "r4ffpvc2g1c5e6zc": {
+            "id": "r4ffpvc2g1c5e6zc",
+            "type": "sliderinput",
+            "content": {
+                "label": "Fig Ncols",
+                "minValue": "5",
+                "maxValue": "100",
+                "stepSize": "1"
+            },
+            "isCodeManaged": false,
+            "position": 1,
+            "parentId": "vulkp27m2t3m616w",
+            "handlers": {},
+            "visible": true,
+            "binding": {
+                "eventType": "ss-number-change",
+                "stateRef": "fig_ncols"
+            }
+        },
+        "r99hkfxw8mjumel2": {
+            "id": "r99hkfxw8mjumel2",
+            "type": "button",
+            "content": {
+                "text": "Save And Run Experiment"
+            },
+            "isCodeManaged": false,
+            "position": 4,
+            "parentId": "42b3azknhihd5q8f",
+            "handlers": {
+                "ss-click": "save_and_run_experiment"
+            },
             "visible": true
         }
     }
