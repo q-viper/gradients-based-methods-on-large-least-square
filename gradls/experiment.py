@@ -7,7 +7,7 @@ from gradls.vis.matplotlib_vis import (
     MatplotlibVisualizer,
 )
 from gradls.losses import Loss, LossType
-
+from gradls.datagenerator import DataGenerator, MyDataset
 
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Tuple
@@ -22,59 +22,15 @@ from pathlib import Path
 from enum import Enum
 
 
-class DataGenerator:
-    def __init__(
-        self,
-        num_rows: int,
-        num_cols: int,
-        min_val: int = 0,
-        max_val: int = 100,
-        weights: Optional[np.ndarray] = None,
-        biases: Optional[np.ndarray] = None,
-        seed: int = 100,
-        normalize: bool = True,
-    ):
-        np.random.seed(seed)
-        self.X = np.random.uniform(min_val, max_val + 1, (num_rows, num_cols))
-        self.normalize = normalize
-        if normalize:
-            self.X = self.X / np.max(self.X)
-        self.weights = weights
-        self.biases = biases
-
-    def make_data(self):
-        if self.weights is None:
-            self.weights = np.random.randn(self.X.shape[1])
-        if self.biases is None:
-            self.biases = np.random.randn(1)
-
-        self.y = np.dot(self.X, self.weights) + self.biases
-        self.X, self.y = torch.tensor(self.X, dtype=torch.float32), torch.tensor(
-            self.y, dtype=torch.float32
-        )
-        return self.X, self.y
-
-
 class Optimizer(Enum):
     SGD = "sgd"
+    MOMENTUM = "momentum"
+    NESTEROV = "nesterov"
     ADAM = "adam"
     RMSPROP = "rmsprop"
     ADAGRAD = "adagrad"
     ADADELTA = "adadelta"
-
-
-class MyDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        if self.y is None:
-            raise ValueError("No y values found. Please generate data first.")
-        return self.X[idx], self.y[idx]
+    ADAMAX = "adamax"
 
 
 @dataclass
@@ -94,10 +50,15 @@ class ExperimentConfig:
     log_every: int = 1
     log_dir: Path = None
     log_anim: bool = True
+    log_plots: bool = True
+    plot_format: str = "png"
     anim_interval: int = 100
     anim_frames: int = 10
     anim_fps: int = 30
     log_real_params: bool = True
+    log_real_data: bool = True
+    verbose: bool = False
+    device: str = "cpu"
 
 
 class Runner:
@@ -115,6 +76,7 @@ class Runner:
         data: Dataset = None,
         l1_penalty: float = 0.0,
         l2_penalty: float = 0.0,
+        device: str = "cuda",
     ):
         self.name = name
         self.batch_size = batch_size
@@ -123,7 +85,7 @@ class Runner:
         self.optimizer = optimizer
         self.model = model
         self.is_test = is_test
-        self.data_loader = DataLoader(data, batch_size=64, shuffle=True)
+        self.data_loader = DataLoader(data, batch_size=batch_size, shuffle=True)
         self.logs = {metric.name: [] for metric in self.metrics}
         self.logs[f"{name}_loss({loss.name})"] = []
         self.curr_epoch = 0
@@ -132,11 +94,14 @@ class Runner:
         self.logs["epochs"] = []
         self.l1_penalty = l1_penalty
         self.l2_penalty = l2_penalty
+        self.device = device
+        self.model.to(self.device)
 
         if log_params:
             self.logs["weights"] = []
             self.logs["biases"] = []
-            self.logs["gradients"] = []
+            self.logs["weight_gradients"] = []
+            self.logs["bias_gradients"] = []
             self.logs["learning_rate"] = []
 
     def step(self):
@@ -152,8 +117,8 @@ class Runner:
         # all_preds = []
 
         for i, (X, y) in enumerate(self.data_loader):
-            # print(f"Epoch {self.curr_epoch}, Batch {i}, ")
-
+            # print(X.shape, y.shape)
+            X, y = X.to(self.device), y.to(self.device)
             y_pred = self.model(X)
 
             # if self.log_output:
@@ -163,6 +128,7 @@ class Runner:
             batch_losses.append(loss.item())
 
             params = torch.cat([p.view(-1) for p in self.model.parameters()])
+            # print(loss)
 
             if self.l1_penalty > 0:
                 loss += self.l1_penalty * torch.abs(params).sum()
@@ -190,8 +156,11 @@ class Runner:
             if self.log_params:
                 self.logs["weights"].append(self.model.weight.data.numpy().copy())
                 self.logs["biases"].append(self.model.bias.data.numpy().copy())
-                self.logs["gradients"].append(
+                self.logs["weight_gradients"].append(
                     self.model.weight.grad.data.numpy().copy()
+                )
+                self.logs["bias_gradients"].append(
+                    self.model.bias.grad.data.numpy().copy()
                 )
                 self.logs["learning_rate"].append(self.optimizer.param_groups[0]["lr"])
         self.curr_epoch += 1
@@ -219,6 +188,7 @@ class Experiment:
         self.loss_fxn = Loss(self.config.loss)
 
     def load_data(self, data: DataGenerator):
+        self.data_config = data.config
         self.data = data
         X, y = data.make_data()
         self.real_weights = data.weights
@@ -244,9 +214,20 @@ class Experiment:
 
         if self.config.optimizer == Optimizer.SGD:
             self.optimizer = torch.optim.SGD(
+                self.config.model.parameters(), lr=self.config.learning_rate
+            )
+        elif self.config.optimizer == Optimizer.MOMENTUM:
+            self.optimizer = torch.optim.SGD(
                 self.config.model.parameters(),
                 lr=self.config.learning_rate,
                 momentum=self.config.momentum,
+            )
+        elif self.config.optimizer == Optimizer.NESTEROV:
+            self.optimizer = torch.optim.SGD(
+                self.config.model.parameters(),
+                lr=self.config.learning_rate,
+                momentum=self.config.momentum,
+                nesterov=True,
             )
         elif self.config.optimizer == Optimizer.ADAM:
             self.optimizer = torch.optim.Adam(
@@ -264,41 +245,49 @@ class Experiment:
             self.optimizer = torch.optim.Adadelta(
                 self.config.model.parameters(), lr=self.config.learning_rate
             )
+        elif self.config.optimizer == Optimizer.ADAMAX:
+            self.optimizer = torch.optim.Adamax(
+                self.config.model.parameters(), lr=self.config.learning_rate
+            )
+        elif self.config.optimizer == Optimizer.ADAMW:
+            self.optimizer = torch.optim.AdamW(
+                self.config.model.parameters(), lr=self.config.learning_rate
+            )
         else:
             raise ValueError("Invalid optimizer type.")
 
-        self.train_loader = DataLoader(
-            train_data, batch_size=self.config.batch_size, shuffle=True
-        )
-        self.val_loader = DataLoader(
-            val_data, batch_size=self.config.batch_size, shuffle=False
-        )
+        if self.config.batch_size < 1:
+            self.config.batch_size = len(train_data)
+            train_batch_size = len(train_data)
+            test_batch_size = len(val_data)
+        else:
+            train_batch_size = self.config.batch_size
+            test_batch_size = self.config.batch_size
+
         self.train_runner = Runner(
             name="train",
             loss=self.loss_fxn,
             model=self.config.model,
-            batch_size=self.config.batch_size,
+            batch_size=train_batch_size,
             optimizer=self.optimizer,
             metrics=[Loss(m) for m in self.config.metrics],
             data=train_data,
             log_params=True,
+            device=self.config.device,
         )
         self.val_runner = Runner(
             name="val",
             loss=self.loss_fxn,
             model=self.config.model,
-            batch_size=self.config.batch_size,
+            batch_size=test_batch_size,
             optimizer=self.optimizer,
             metrics=[Loss(m) for m in self.config.metrics],
             is_test=True,
             data=val_data,
+            device=self.config.device,
         )
 
     def train(self):
-        try:
-            self.train_loader
-        except AttributeError:
-            raise ValueError("Setup the experiment first.")
         for epoch in range(self.config.num_epochs):
             train_loss, train_metrics = self.train_runner.step()
             val_loss, val_metrics = self.val_runner.step()
@@ -313,7 +302,7 @@ class Experiment:
 
             # train_mse, val_mse, train_bias, val_bias, train_variance, val_variance = self.calculate_bias_variance()
 
-            if epoch % self.config.log_every == 0:
+            if epoch % self.config.log_every == 0 and self.config.verbose:
                 print(f"Epoch {epoch}: Train Loss: {train_loss}, Val Loss: {val_loss}")
 
         print("Training complete.")
@@ -377,7 +366,10 @@ class Experiment:
                 len(epochs), -1
             )
             biases = np.array(self.train_runner.logs["biases"]).reshape(len(epochs), -1)
-            gradients = np.array(self.train_runner.logs["gradients"]).reshape(
+            weight_gradients = np.array(
+                self.train_runner.logs["weight_gradients"]
+            ).reshape(len(epochs), -1)
+            bias_gradients = np.array(self.train_runner.logs["bias_gradients"]).reshape(
                 len(epochs), -1
             )
 
@@ -388,7 +380,7 @@ class Experiment:
 
             for widx in range(weights.shape[1]):
                 weight = weights[:, widx].flatten()
-                gradient = gradients[:, widx].flatten()
+                weight_gradient = weight_gradients[:, widx].flatten()
                 color = keys[len(colors) % (widx + 1)]
                 if widx == 0:
                     weights_plots.append(
@@ -401,13 +393,11 @@ class Experiment:
                             color=color,
                         )
                     )
-                    # if self.config.log_real_params:
-                    #     weights_plots.append(Plot(X=epochs, y=real_weights[widx]*np.ones_like(epochs), plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, marker='x',
-                    #                             color=color, allow_animation=False))
+
                     gradients_plots.append(
                         Plot(
                             X=epochs,
-                            y=gradient,
+                            y=weight_gradient,
                             plot_type=PlotType.SCATTER,
                             plot_order=PlotOn.APPEND_RIGHT,
                             title="Gradients",
@@ -426,13 +416,11 @@ class Experiment:
                             xlabel="Epoch",
                         )
                     )
-                    # if self.config.log_real_params:
-                    #     weights_plots.append(Plot(X=epochs, y=real_weights[widx]*np.ones_like(epochs), plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, marker='x',
-                    #                           color=color, allow_animation=False))
+
                     gradients_plots.append(
                         Plot(
                             X=epochs,
-                            y=gradient,
+                            y=weight_gradient,
                             plot_type=PlotType.SCATTER,
                             plot_order=PlotOn.RIGHT,
                             color=color,
@@ -441,20 +429,38 @@ class Experiment:
                         )
                     )
 
-            bc = keys[np.random.randint(0, len(colors))]
-            biases_plots.extend(
+            bc = keys[len(colors) - 1]
+            weights_plots.extend(
                 [
                     Plot(
                         X=epochs,
                         y=[b.flatten() for b in biases],
                         plot_type=PlotType.SCATTER,
-                        plot_order=PlotOn.APPEND_RIGHT,
-                        title="Biases",
+                        plot_order=PlotOn.RIGHT,
+                        marker="x",
+                        title="Trained Param.",
                         xlabel="Epoch",
                         color=bc,
                         legend="Trained Bias",
                     ),
                     #  Plot(X=epochs, y=[self.real_biases]*np.ones_like(epochs), plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, marker='x',
+                    #  title='Biases', xlabel='Epoch', legend='Real Bias', color=bc, allow_animation=False)
+                ]
+            )
+            gradients_plots.extend(
+                [
+                    Plot(
+                        X=epochs,
+                        y=[bg.flatten() for bg in bias_gradients],
+                        plot_type=PlotType.SCATTER,
+                        plot_order=PlotOn.RIGHT,
+                        marker="x",
+                        title="Param. Gradients",
+                        xlabel="Epoch",
+                        color=bc,
+                        legend="Bias Gradients",
+                    ),
+                    #  Plot(X=epochs, y=[0]*np.ones_like(epochs), plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, marker='x',
                     #  title='Biases', xlabel='Epoch', legend='Real Bias', color=bc, allow_animation=False)
                 ]
             )
@@ -464,7 +470,7 @@ class Experiment:
             weights_plots[-2].legend = "Trained Weights"
             weights_plots[-1].xlabel = "Epoch"
 
-            gradients_plots[-1].legend = "Gradients"
+            gradients_plots[-2].legend = "Weight Gradients"
 
             plots.extend(weights_plots)
             plots.extend(biases_plots)
@@ -508,30 +514,25 @@ class Experiment:
     def show_fig(self):
         self.viz.show_fig()
 
-    def log_expt(self, format: str = "png", plots: Optional[List[Plot]] = None) -> Path:
-
-        if plots is None:
-            plots = self.get_default_plots()
-        self.viz.clear_plots()
-        for plot in plots:
-            self.viz.append_plot(plot)
-        fig, ax = self.viz.generate_plots()
+    def log_expt(self, plots: Optional[List[Plot]] = None) -> Path:
 
         if self.config.log_dir is None:
             self.config.log_dir = Path("expt_res")
         expt_dir = Path(f"{self.config.log_dir}/{self.config.name}")
         expt_dir.mkdir(parents=True, exist_ok=True)
 
-        # log expt config
-        expt_config = asdict(self.config)
-        np.save(
-            Path(f"{self.config.log_dir}/{self.config.name}_config.npy"), expt_config
-        )
-
-        self.save_fig(
-            fig, Path(f"{expt_dir}/{self.config.name}.{format}"), format=format
-        )
-
+        if self.config.log_plots:
+            if plots is None:
+                plots = self.get_default_plots()
+            self.viz.clear_plots()
+            for plot in plots:
+                self.viz.append_plot(plot)
+            fig, ax = self.viz.generate_plots()
+            self.save_fig(
+                fig,
+                Path(f"{expt_dir}/{self.config.name}.{self.config.plot_format}"),
+                format=self.config.plot_format,
+            )
         if self.config.log_anim:
             self.animate_plots(
                 interval=self.config.anim_interval, frames=self.config.anim_frames
@@ -540,14 +541,22 @@ class Experiment:
                 writer="imagemagick",
                 fps=self.config.anim_fps,
             )
+
+        # log expt config
+        expt_config = asdict(self.config)
+        np.save(
+            Path(f"{self.config.log_dir}/{self.config.name}/config.npy"), expt_config
+        )
+
         print(f"Experiment results saved at {expt_dir}.")
 
-        # store train and val data as numpy files
-        np.save(Path(f"{expt_dir}/train_X.npy"), self.train_X.numpy())
-        np.save(Path(f"{expt_dir}/train_y.npy"), self.train_y.numpy())
-        np.save(Path(f"{expt_dir}/val_X.npy"), self.val_X.numpy())
-        np.save(Path(f"{expt_dir}/val_y.npy"), self.val_y.numpy())
-        print("Data saved.")
+        if self.config.log_real_data:
+            # store train and val data as numpy files
+            np.save(Path(f"{expt_dir}/train_X.npy"), self.train_X.numpy())
+            np.save(Path(f"{expt_dir}/train_y.npy"), self.train_y.numpy())
+            np.save(Path(f"{expt_dir}/val_X.npy"), self.val_X.numpy())
+            np.save(Path(f"{expt_dir}/val_y.npy"), self.val_y.numpy())
+            print("Data saved.")
 
         # store all logs from runners
         logs = {
@@ -558,10 +567,12 @@ class Experiment:
         }
         np.save(Path(f"{expt_dir}/logs.npy"), logs)
         print("Logs saved.")
-        # store real weights and biases
-        np.save(Path(f"{expt_dir}/real_weights.npy"), self.real_weights)
-        np.save(Path(f"{expt_dir}/real_biases.npy"), self.real_biases)
-        print("Real weights and biases saved.")
+
+        if self.config.log_real_params:
+            # store real weights and biases
+            np.save(Path(f"{expt_dir}/real_weights.npy"), self.real_weights)
+            np.save(Path(f"{expt_dir}/real_biases.npy"), self.real_biases)
+            print("Real weights and biases saved.")
         # store all params from model, no need its in experiment config
         # torch.save(self.config.model.state_dict(), Path(f"{expt_dir}/model.pth"))
         # print("Model saved.")
@@ -577,15 +588,13 @@ class Experiment:
 # out_features = 1
 # viz_config = MatplotlibVizConfig(figsize=(15,10),title="My Exp",
 #                                  use_tex=False)
-# exp_config = ExperimentConfig(name="My Exp", loss=LossType.MSE, viz_config=viz_config,
-#                               num_epochs=100, batch_size=1,learning_rate=0.01, optimizer=Optimizer.ADAM,
-#                               model=None, metrics=[LossType.MAE, LossType.HINGE, LossType.RMSE],
-#                               log_every=1, log_anim=True, anim_fps=10)
+# exp_config = ExperimentConfig(name="Exp5", loss=LossType.MAE, viz_config=viz_config,
+#                               num_epochs=10, batch_size=24,learning_rate=0.1, optimizer=Optimizer.ADAM,
+#                               model=None, metrics=[LossType.MSE, LossType.RMSE],
+#                               log_every=1, log_anim=False, anim_fps=10, plot_format='png')
 
-# data = DataGenerator(num_rows=1000, num_cols=in_features, weights=None, biases=None, max_val=100,
-#                      normalize=True, seed=exp_config.seed)
+# data = DataGenerator(DataGeneratorConfig(num_rows=1000, num_cols=in_features, min_val=0, max_val=100, seed=100, normalize=True, noise=0.1))
 
 # exp = Experiment(config=exp_config)
 # exp.load_data(data)
 # exp.train()
-# exp.log_expt()

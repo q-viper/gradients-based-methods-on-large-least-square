@@ -46,7 +46,7 @@ class Plot:
     plot_order: PlotOn
     plot_row_col: Tuple[int, int] = (-1, -1)
     title: str = ""
-    title_size: int = 7
+    title_size: int = 15
     xlabel: str = ""
     ylabel: str = ""
     label_size: int = 10
@@ -54,7 +54,7 @@ class Plot:
     marker: Optional[str] = None
     linestyle: str = "-"
     linewidth: int = 2
-    legend: str = ""
+    legend: Optional[str] = "_nolegend_"
     show_legend: bool = True
     legend_size: int = 7
     apply_margin: bool = False
@@ -79,6 +79,7 @@ class MatplotlibVisualizer:
         self.num_cols = 1
         self.num_plots = 0
         self.ax_lim = {}
+        self.completed_frames = []
 
     def make_figure(self):
         print(f"Making figure with {self.num_rows} rows and {self.num_cols} columns.")
@@ -143,9 +144,11 @@ class MatplotlibVisualizer:
 
         self._plots.append(plot)
 
-    def _generate_plot(self, plot: Plot, ax, legend_loc: dict = {}, limit: int = -1):
+    def _generate_plot(self, plot: Plot, ax, limit: int = -1):
         curr_row, curr_col = plot.plot_row_col
         key = f"{curr_row}_{curr_col}"
+        label = plot.legend
+        # print(f"Shape of X: {plot.X.shape}, Limit: {limit}, Label: {label}.")
         if plot.plot_type == PlotType.LINE:
             ax.plot(
                 plot.X[:limit],
@@ -154,6 +157,7 @@ class MatplotlibVisualizer:
                 marker=plot.marker,
                 linestyle=plot.linestyle,
                 linewidth=plot.linewidth,
+                label=label,
             )
         elif plot.plot_type == PlotType.SCATTER:
             ax.scatter(
@@ -162,11 +166,12 @@ class MatplotlibVisualizer:
                 color=plot.color,
                 marker=plot.marker,
                 linewidth=plot.linewidth,
+                label=label,
             )
         elif plot.plot_type == PlotType.BAR:
-            ax.bar(plot.X[:limit], plot.y[:limit], color=plot.color)
+            ax.bar(plot.X[:limit], plot.y[:limit], color=plot.color, label=label)
         elif plot.plot_type == PlotType.HIST:
-            ax.hist(plot.X[:limit], color=plot.color)
+            ax.hist(plot.X[:limit], color=plot.color, label=label)
         elif plot.plot_type == PlotType.IMAGE:
             ax.imshow(plot.X)
         else:
@@ -227,34 +232,24 @@ class MatplotlibVisualizer:
             color=self.config.font_color,
         )
         ax.grid(self.config.show_grid)
-        if plot.show_legend:
-            if plot.legend != "":
-                curr_row, curr_col = plot.plot_row_col
-                if legend_loc.get(key) is None:
-                    legend_loc[key] = []
-                legend_loc[key].append(plot.legend)
-        return ax, legend_loc
+
+        return ax
 
     def generate_plots(self, save_path: Optional[Path] = None, format: str = "svg"):
         # get figure and axes
         fig, ax = self.make_figure()
 
-        legend_loc = {}
-
         for plot in self._plots:
             curr_row, curr_col = plot.plot_row_col
             curr_ax = ax[curr_row, curr_col]
 
-            curr_ax, legend_loc = self._generate_plot(
-                plot, curr_ax, legend_loc, limit=plot.X.shape[0]
-            )
+            curr_ax = self._generate_plot(plot, curr_ax, limit=plot.X.shape[0])
 
-        for rc, loc in legend_loc.items():
-            curr_row, curr_col = [int(i) for i in rc.split("_")]
+        for plot in self._plots:
+            curr_row, curr_col = plot.plot_row_col
             curr_ax = ax[curr_row, curr_col]
-            curr_ax.legend(
-                legend_loc[rc], loc=self.config.legend_loc, fontsize=plot.legend_size
-            )
+            if plot.show_legend:
+                curr_ax.legend(loc=self.config.legend_loc, fontsize=plot.legend_size)
 
         # hide empty plots
         if self.config.hide_empty_plots:
@@ -269,28 +264,35 @@ class MatplotlibVisualizer:
 
         return fig, ax
 
-    def _animate(self, i, ax, num_frames=30):
-        legend_loc = {}
+    def _animate(self, curr_frame, ax, num_frames=30):
+        curr_frame += 1
+        print(
+            f"Animating frame {curr_frame}. Completed frames: {self.completed_frames}. Num frames: {num_frames}."
+        )
+
+        for plot in self._plots:
+            anim_plot = True
+            curr_row, curr_col = plot.plot_row_col
+            curr_ax = ax[curr_row, curr_col]
+            if curr_frame > 1 or curr_frame in self.completed_frames:
+                plot.legend = "_nolegend_"
+
+            if plot.allow_animation:
+                limit = int((curr_frame + 1) * len(plot.X) / num_frames)
+            else:
+                if curr_frame == 1:
+                    limit = len(plot.X)
+                else:
+                    anim_plot = False
+            if anim_plot:
+                curr_ax = self._generate_plot(plot, curr_ax, limit=limit)
+        self.completed_frames.append(curr_frame)
 
         for plot in self._plots:
             curr_row, curr_col = plot.plot_row_col
             curr_ax = ax[curr_row, curr_col]
-
-            if plot.allow_animation:
-                limit = int(i * len(plot.X) / num_frames)
-            else:
-                limit = len(plot.X)
-
-            curr_ax, legend_loc = self._generate_plot(
-                plot, curr_ax, legend_loc, limit=limit
-            )
-
-        for rc, loc in legend_loc.items():
-            curr_row, curr_col = [int(i) for i in rc.split("_")]
-            curr_ax = ax[curr_row, curr_col]
-            curr_ax.legend(
-                legend_loc[rc], loc=self.config.legend_loc, fontsize=plot.legend_size
-            )
+            if plot.show_legend:
+                curr_ax.legend(loc=self.config.legend_loc, fontsize=plot.legend_size)
 
         # hide empty plots
         if self.config.hide_empty_plots:
