@@ -21,6 +21,17 @@ import torch
 from pathlib import Path
 from enum import Enum
 
+import torch.nn as nn
+from typing import List
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+from sklearn.model_selection import train_test_split
+import torch
+from dataclasses import asdict, field
+from typing import Union, Optional
+
+from gradls.vis.colors import visible_colors
+
 
 class Optimizer(Enum):
     SGD = "sgd"
@@ -59,6 +70,7 @@ class ExperimentConfig:
     log_real_data: bool = True
     verbose: bool = False
     device: str = "cpu"
+    single_batch = True
 
 
 class Runner:
@@ -76,6 +88,7 @@ class Runner:
         data: Dataset = None,
         l1_penalty: float = 0.0,
         l2_penalty: float = 0.0,
+        single_batch=True,
         device: str = "cuda",
     ):
         self.name = name
@@ -95,6 +108,7 @@ class Runner:
         self.l1_penalty = l1_penalty
         self.l2_penalty = l2_penalty
         self.device = device
+        self.single_batch = single_batch
         self.model.to(self.device)
 
         if log_params:
@@ -105,19 +119,20 @@ class Runner:
             self.logs["learning_rate"] = []
 
     def step(self):
-        if self.is_test:
-            self.model.eval()
-        else:
-            self.model.train()
-
         batch_losses = []
         batch_metrics = {metric.name: [] for metric in self.metrics}
         # print(self.metrics)
 
         # all_preds = []
+        if self.is_test:
+            self.model.eval()
+        else:
+            self.model.train()
 
         for i, (X, y) in enumerate(self.data_loader):
             # print(X.shape, y.shape)
+            if not self.is_test:
+                self.optimizer.zero_grad()
             X, y = X.to(self.device), y.to(self.device)
             y_pred = self.model(X)
 
@@ -135,11 +150,16 @@ class Runner:
             if self.l2_penalty > 0:
                 loss += self.l2_penalty * (params**2).sum()
 
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            if not self.is_test:
+                # self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
             for metric in self.metrics:
                 batch_metrics[metric.name].append(metric(y, y_pred).detach().numpy())
+
+            if self.single_batch:
+                break
 
         if self.curr_epoch % self.log_every == 0:
             epoch_loss = np.mean(batch_losses)
@@ -156,13 +176,16 @@ class Runner:
             if self.log_params:
                 self.logs["weights"].append(self.model.weight.data.numpy().copy())
                 self.logs["biases"].append(self.model.bias.data.numpy().copy())
-                self.logs["weight_gradients"].append(
-                    self.model.weight.grad.data.numpy().copy()
-                )
-                self.logs["bias_gradients"].append(
-                    self.model.bias.grad.data.numpy().copy()
-                )
-                self.logs["learning_rate"].append(self.optimizer.param_groups[0]["lr"])
+                if not self.is_test:
+                    self.logs["weight_gradients"].append(
+                        self.model.weight.grad.data.numpy().copy()
+                    )
+                    self.logs["bias_gradients"].append(
+                        self.model.bias.grad.data.numpy().copy()
+                    )
+                    self.logs["learning_rate"].append(
+                        self.optimizer.param_groups[0]["lr"]
+                    )
         self.curr_epoch += 1
 
         # if self.log_output:
@@ -184,7 +207,7 @@ class Experiment:
         self.optimizer = None
         self.real_weights = None
         self.real_biases = None
-
+        self.logs = None
         self.loss_fxn = Loss(self.config.loss)
 
     def load_data(self, data: DataGenerator):
@@ -249,10 +272,6 @@ class Experiment:
             self.optimizer = torch.optim.Adamax(
                 self.config.model.parameters(), lr=self.config.learning_rate
             )
-        elif self.config.optimizer == Optimizer.ADAMW:
-            self.optimizer = torch.optim.AdamW(
-                self.config.model.parameters(), lr=self.config.learning_rate
-            )
         else:
             raise ValueError("Invalid optimizer type.")
 
@@ -290,7 +309,10 @@ class Experiment:
     def train(self):
         for epoch in range(self.config.num_epochs):
             train_loss, train_metrics = self.train_runner.step()
-            val_loss, val_metrics = self.val_runner.step()
+
+            with torch.no_grad():
+                val_loss, val_metrics = self.val_runner.step()
+
             self.losses[epoch] = {"train_loss": train_loss, "val_loss": val_loss}
             for metric in self.config.metrics:
                 self.metrics[metric.value].append(
@@ -565,6 +587,7 @@ class Experiment:
                 ["train", "val"], [self.train_runner, self.val_runner]
             )
         }
+        self.logs = logs
         np.save(Path(f"{expt_dir}/logs.npy"), logs)
         print("Logs saved.")
 
@@ -584,16 +607,14 @@ class Experiment:
         return expt_dir
 
 
-# in_features = 20
-# out_features = 1
 # viz_config = MatplotlibVizConfig(figsize=(15,10),title="My Exp",
 #                                  use_tex=False)
 # exp_config = ExperimentConfig(name="Exp5", loss=LossType.MAE, viz_config=viz_config,
-#                               num_epochs=10, batch_size=24,learning_rate=0.1, optimizer=Optimizer.ADAM,
-#                               model=None, metrics=[LossType.MSE, LossType.RMSE],
+#                               num_epochs=1000, batch_size=16,learning_rate=0.0001, optimizer=Optimizer.SGD,
+#                               model=None, metrics=[LossType.MSE],
 #                               log_every=1, log_anim=False, anim_fps=10, plot_format='png')
 
-# data = DataGenerator(DataGeneratorConfig(num_rows=1000, num_cols=in_features, min_val=0, max_val=100, seed=100, normalize=True, noise=0.1))
+# data = DataGenerator(DataGeneratorConfig(num_rows=1000, num_cols=5, noise_norm_by=10))
 
 # exp = Experiment(config=exp_config)
 # exp.load_data(data)
