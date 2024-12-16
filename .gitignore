@@ -1,5 +1,6 @@
 # local folders
-*.pdf
+notebooks/*.pdf
+notebooks/
 expt_res/
 # Byte-compiled / optimized / DLL files
 __pycache__/
