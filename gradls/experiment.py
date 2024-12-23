@@ -70,7 +70,6 @@ class ExperimentConfig:
     log_real_data: bool = True
     verbose: bool = False
     device: str = "cpu"
-    single_batch = True
 
 
 class Runner:
@@ -88,7 +87,6 @@ class Runner:
         data: Dataset = None,
         l1_penalty: float = 0.0,
         l2_penalty: float = 0.0,
-        single_batch=True,
         device: str = "cuda",
     ):
         self.name = name
@@ -108,7 +106,6 @@ class Runner:
         self.l1_penalty = l1_penalty
         self.l2_penalty = l2_penalty
         self.device = device
-        self.single_batch = single_batch
         self.model.to(self.device)
 
         if log_params:
@@ -157,9 +154,6 @@ class Runner:
 
             for metric in self.metrics:
                 batch_metrics[metric.name].append(metric(y, y_pred).detach().numpy())
-
-            if self.single_batch:
-                break
 
         if self.curr_epoch % self.log_every == 0:
             epoch_loss = np.mean(batch_losses)
@@ -270,6 +264,10 @@ class Experiment:
             )
         elif self.config.optimizer == Optimizer.ADAMAX:
             self.optimizer = torch.optim.Adamax(
+                self.config.model.parameters(), lr=self.config.learning_rate
+            )
+        elif self.config.optimizer == Optimizer.ADAMW:
+            self.optimizer = torch.optim.AdamW(
                 self.config.model.parameters(), lr=self.config.learning_rate
             )
         else:
@@ -537,7 +535,6 @@ class Experiment:
         self.viz.show_fig()
 
     def log_expt(self, plots: Optional[List[Plot]] = None) -> Path:
-
         if self.config.log_dir is None:
             self.config.log_dir = Path("expt_res")
         expt_dir = Path(f"{self.config.log_dir}/{self.config.name}")
@@ -607,15 +604,32 @@ class Experiment:
         return expt_dir
 
 
-# viz_config = MatplotlibVizConfig(figsize=(15,10),title="My Exp",
-#                                  use_tex=False)
-# exp_config = ExperimentConfig(name="Exp5", loss=LossType.MAE, viz_config=viz_config,
-#                               num_epochs=1000, batch_size=16,learning_rate=0.0001, optimizer=Optimizer.SGD,
-#                               model=None, metrics=[LossType.MSE],
-#                               log_every=1, log_anim=False, anim_fps=10, plot_format='png')
+if __name__ == "__main__":
+    from gradls.datagenerator import DataGeneratorConfig
 
-# data = DataGenerator(DataGeneratorConfig(num_rows=1000, num_cols=5, noise_norm_by=10))
+    viz_config = MatplotlibVizConfig(
+        figsize=(15, 10), title="My Exp", use_tex=False, sharey=False
+    )
+    exp_config = ExperimentConfig(
+        name="Exp5",
+        loss=LossType.MSE,
+        viz_config=viz_config,
+        num_epochs=1000,
+        batch_size=1,
+        learning_rate=0.1,
+        momentum=0.9,
+        optimizer=Optimizer.NESTEROV,
+        model=None,
+        metrics=[LossType.MSE],
+        log_every=1,
+        log_anim=False,
+        anim_fps=10,
+        plot_format="png",
+    )
 
-# exp = Experiment(config=exp_config)
-# exp.load_data(data)
-# exp.train()
+    data = DataGenerator(
+        DataGeneratorConfig(num_rows=1000, num_cols=5, noise_norm_by=10)
+    )
+
+    exp = Experiment(config=exp_config)
+    exp.load_data(data)

@@ -1,9 +1,8 @@
-from typing import Union
+from typing import Union, Optional
 import torch
 from torch.utils.data import Dataset
-from dataclasses import dataclass
 import numpy as np
-from typing import Optional
+from dataclasses import dataclass
 
 
 @dataclass
@@ -14,9 +13,10 @@ class DataGeneratorConfig:
     max_val: int = 100
     seed: int = 100
     normalize: bool = True
-    noise: Union[float, np.ndarray] = 0.0
+    noise: Optional[Union[float, np.ndarray]] = None
     weights: Optional[np.ndarray] = None
     biases: Optional[np.ndarray] = None
+    noise_norm_by: Optional[float] = 1.0
 
 
 class DataGenerator:
@@ -29,22 +29,25 @@ class DataGenerator:
             self.config.max_val + 1,
             (self.config.num_rows, self.config.num_cols),
         )
-        self.normalize = self.config.normalize
-        if self.config.normalize:
-            self.X = self.X / np.max(self.X)
-        self.weights = self.config.weights
-        self.biases = self.config.biases
         self.noise = (
             self.config.noise
             if self.config.noise is not None
-            else np.random.randn(self.config.num_rows)
+            else np.random.standard_normal(self.config.num_rows)
+            / self.config.noise_norm_by
         )
+        self.normalize = self.config.normalize
+        if self.config.normalize:
+            self.X = self.X / np.max(self.X)
+            # self.noise = self.noise/self.config.max_val
+        self.weights = self.config.weights
+        self.biases = self.config.biases
+        # self.noise = self.config.noise if self.config.noise is not None else np.random.randn(self.config.num_rows)
 
     def make_data(self):
         if self.weights is None:
-            self.weights = np.random.randn(self.X.shape[1])
+            self.weights = np.random.standard_normal(self.X.shape[1])
         if self.biases is None:
-            self.biases = np.random.randn(1)
+            self.biases = np.random.standard_normal(1)
 
         self.y = np.dot(self.X, self.weights) + self.biases + self.noise
         self.X, self.y = torch.tensor(self.X, dtype=torch.float32), torch.tensor(
@@ -74,4 +77,4 @@ if __name__ == "__main__":
 
     data_gen2 = DataGenerator(DataGeneratorConfig(num_rows=1000, num_cols=20))
     data_gen2.make_data()
-    data_gen2.weights == data_gen1.weights, data_gen2.biases == data_gen1.biases
+    assert data_gen2.weights == data_gen1.weights, data_gen2.biases == data_gen1.biases

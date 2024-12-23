@@ -22,6 +22,7 @@ class MatplotlibVizConfig:
     legend_loc: str = "upper right"
     title: str = ""
     hide_empty_plots: bool = True
+    sharey: bool = True
 
 
 class PlotOn(Enum):
@@ -66,11 +67,15 @@ class Plot:
     xmin: Optional[float] = None
     ymax: Optional[float] = None
     ymin: Optional[float] = None
+    fixed_ymax: bool = False
     allow_animation: bool = True
 
 
 class MatplotlibVisualizer:
     def __init__(self, config: MatplotlibVizConfig):
+        """
+        A class to visualize matplotlib plots in subplots and animate them.
+        """
         self.config = config
         self._plots = []
         self.curr_row = 0
@@ -89,6 +94,7 @@ class MatplotlibVisualizer:
             figsize=self.config.figsize,
             dpi=self.config.dpi,
             facecolor=self.config.background_color,
+            sharey=self.config.sharey,
         )
         fig.suptitle(
             self.config.title,
@@ -208,10 +214,10 @@ class MatplotlibVisualizer:
             )
         self.ax_lim[key] = [x_min, x_max, y_min, y_max]
 
-        if plot.apply_margin:
-            ax.set_xlim([x_min - plot.left_margin, x_max + plot.right_margin])
+        if plot.apply_margin and not plot.fixed_ymax:
+            ax.set_xlim(x_min - plot.left_margin, x_max + plot.right_margin)
             if plot.y is not None:
-                ax.set_ylim([y_min - plot.bottom_margin, y_max + plot.top_margin])
+                ax.set_ylim(y_min - plot.bottom_margin, y_max + plot.top_margin)
 
         ax.set_title(
             plot.title,
@@ -244,6 +250,8 @@ class MatplotlibVisualizer:
             curr_ax = ax[curr_row, curr_col]
 
             curr_ax = self._generate_plot(plot, curr_ax, limit=plot.X.shape[0])
+            if plot.fixed_ymax:
+                curr_ax.set_ylim(plot.ymin, plot.ymax)
 
         for plot in self._plots:
             curr_row, curr_col = plot.plot_row_col
@@ -325,8 +333,8 @@ class MatplotlibVisualizer:
     def save_animation(self, anim, path: Path):
         anim.save(path)
 
-    def save_fig(self, fig, path: Path, format: str = "svg"):
-        fig.savefig(path, format=format, dpi=self.config.dpi)
+    def save_fig(self, fig: plt.Figure, path: Path, format: str = "svg"):
+        fig.savefig(path, format=format, dpi=self.config.dpi, bbox_inches="tight")
 
     def show_fig(self):
         plt.show()
@@ -345,38 +353,79 @@ class MatplotlibVisualizer:
 
 
 # Example usage
-# viz_config = MatplotlibVizConfig(figsize=(5,3),title="Test",
-#                                  use_tex=False,)
-# viz = MatplotlibVisualizer(config=viz_config)
 
-# X = np.linspace(0, 10, 100)
-# y = np.sin(X)
-# z = np.cos(X)
-# w = y+z
+if __name__ == "__main__":
+    viz_config = MatplotlibVizConfig(
+        figsize=(5, 3),
+        title="Test",
+        use_tex=False,
+    )
+    viz = MatplotlibVisualizer(config=viz_config)
 
-# # show legend in latex format
+    X = np.linspace(0, 10, 100)
+    y = np.sin(X)
+    z = np.cos(X)
+    w = y + z
 
-# plot1 = Plot(X=X, y=y, plot_type=PlotType.LINE, plot_order=PlotOn.RIGHT, legend="sin(x)")
-# plot2 = Plot(X=X, y=y, plot_type=PlotType.SCATTER, plot_order=PlotOn.APPEND_RIGHT)
-# plot3 = Plot(X=X, y=y, plot_type=PlotType.BAR, plot_order=PlotOn.APPEND_DOWN)
-# plot4 = Plot(X=X, y=z, plot_type=PlotType.LINE, plot_order=PlotOn.APPEND_RIGHT, legend="cos(x)", color="green", allow_animation=False)
-# plot5 = Plot(X=np.array([1]*100), y=w, plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, legend="sin(x)+cos(x)", color="red")
-# plot5 = Plot(X=np.array([10]*100), y=w, plot_type=PlotType.SCATTER, plot_order=PlotOn.RIGHT, legend="", color="red", allow_animation=False)
+    # show legend in latex format
 
-# plot6 = Plot(X=np.random.randint(0, 10, 100), y=None, plot_type=PlotType.HIST, plot_order=PlotOn.APPEND_DOWN)
-# plot7 = Plot(X=np.random.randint(0, 255,(10,10, 3)), y=None, plot_type=PlotType.IMAGE, plot_order=PlotOn.APPEND_RIGHT, title="Image")
+    plot1 = Plot(
+        X=X, y=y, plot_type=PlotType.LINE, plot_order=PlotOn.RIGHT, legend="sin(x)"
+    )
+    plot2 = Plot(X=X, y=y, plot_type=PlotType.SCATTER, plot_order=PlotOn.APPEND_RIGHT)
+    plot3 = Plot(X=X, y=y, plot_type=PlotType.BAR, plot_order=PlotOn.APPEND_DOWN)
+    plot4 = Plot(
+        X=X,
+        y=z,
+        plot_type=PlotType.LINE,
+        plot_order=PlotOn.APPEND_RIGHT,
+        legend="cos(x)",
+        color="green",
+        allow_animation=False,
+    )
+    plot5 = Plot(
+        X=np.array([1] * 100),
+        y=w,
+        plot_type=PlotType.SCATTER,
+        plot_order=PlotOn.RIGHT,
+        legend="sin(x)+cos(x)",
+        color="red",
+    )
+    plot5 = Plot(
+        X=np.array([10] * 100),
+        y=w,
+        plot_type=PlotType.SCATTER,
+        plot_order=PlotOn.RIGHT,
+        legend="",
+        color="red",
+        allow_animation=False,
+    )
 
+    plot6 = Plot(
+        X=np.random.randint(0, 10, 100),
+        y=None,
+        plot_type=PlotType.HIST,
+        plot_order=PlotOn.APPEND_DOWN,
+    )
+    plot7 = Plot(
+        X=np.random.randint(0, 255, (10, 10, 3)),
+        y=None,
+        plot_type=PlotType.IMAGE,
+        plot_order=PlotOn.APPEND_RIGHT,
+        title="Image",
+    )
 
-# viz.append_plot(plot1)
-# viz.append_plot(plot2)
-# viz.append_plot(plot3)
-# viz.append_plot(plot4)
-# viz.append_plot(plot5)
-# viz.append_plot(plot6)
-# viz.append_plot(plot7)
+    viz.append_plot(plot1)
+    viz.append_plot(plot2)
+    viz.append_plot(plot3)
+    viz.append_plot(plot4)
+    viz.append_plot(plot5)
+    viz.append_plot(plot6)
+    viz.append_plot(plot7)
 
-
-# fig, ax = viz.generate_plots()
-# viz.save_fig(fig, Path("expt_res/test.png"), 'png')
-# viz.show_fig()
-# viz.animate_plots(interval=100,frames=10).save('expt_res/test.gif', writer='imagemagick', fps=30)
+    fig, ax = viz.generate_plots()
+    viz.save_fig(fig, Path("expt_res/test.png"), "png")
+    viz.show_fig()
+    viz.animate_plots(interval=100, frames=10).save(
+        "expt_res/test.gif", writer="imagemagick", fps=30
+    )
